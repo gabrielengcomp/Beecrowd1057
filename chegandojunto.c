@@ -2,60 +2,49 @@
 #include <stdlib.h>
 
 typedef struct fila {
-    char *dados;
+    int *dadosX;
+    int *dadosY;
     int inicio, fim, tamanho;
-}Fila;
+} Fila;
 
 typedef struct status {
-    int xA,yA;
-    int xB,yB;
-    int xC,yC;
-    int moves;
-}Status;
+    int xA, yA;
+    int xB, yB;
+    int xC, yC;
+} Status;
 
-void lerMatriz(int N, char map[N][N]){
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            scanf(" %c ", &map[i][j]);
-        }    
-    }
-}
-
-void printMapa(int N, char map[N][N]){ //para fins de teste
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            printf("%c ", map[i][j]);
+void lerMatriz(int N, char map[N][N]) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            scanf(" %c", &map[i][j]);
         }
-        printf("\n");    
     }
 }
 
-void scanMatriz(int N, char map[N][N], Status coord){
-    char atual;
-
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            atual = map[i][j];
-            if (atual == 'A'){ 
-                coord.xA=i;
-                coord.yA=j;
+void scanMatriz(int N, char map[N][N], Status *coord) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            char atual = map[i][j];
+            if (atual == 'A') {
+                coord->xA = i;
+                coord->yA = j;
             }
-            if (atual == 'B'){ 
-                coord.xB=i;
-                coord.yB=j;
+            if (atual == 'B') {
+                coord->xB = i;
+                coord->yB = j;
             }
-            if (atual == 'C'){ 
-                coord.xC=i;
-                coord.yC=j;
+            if (atual == 'C') {
+                coord->xC = i;
+                coord->yC = j;
             }
-
         }
     }
 }
 
 Fila* criaFila(int capacidade) {
     Fila *fila = (Fila *)malloc(sizeof(Fila));
-    fila->dados = (char *)malloc(capacidade * sizeof(char));
+    fila->dadosX = (int *)malloc(capacidade * sizeof(int));
+    fila->dadosY = (int *)malloc(capacidade * sizeof(int));
     fila->inicio = 0;
     fila->fim = 0;
     fila->tamanho = capacidade;
@@ -66,26 +55,23 @@ int filaVazia(Fila *fila) {
     return fila->inicio == fila->fim;
 }
 
-void enfileira(Fila *fila, char valor) {
-    fila->dados[fila->fim] = valor;
+void enfileira(Fila *fila, int x, int y) {
+    fila->dadosX[fila->fim] = x;
+    fila->dadosY[fila->fim] = y;
     fila->fim = (fila->fim + 1) % fila->tamanho;
 }
 
-char desenfileira(Fila *fila) {
-    char valor = fila->dados[fila->inicio];
+void desenfileira(Fila *fila, int *x, int *y) {
+    *x = fila->dadosX[fila->inicio];
+    *y = fila->dadosY[fila->inicio];
     fila->inicio = (fila->inicio + 1) % fila->tamanho;
-    return valor;
 }
 
-int bfs(int N, char mapa[N][N], Status *coord) {
-    // Movimentos possíveis (direções: cima, baixo, esquerda, direita)
+int BFS(int N, char map[N][N], Status *coord) {
     int movX[] = {-1, 1, 0, 0};
     int movY[] = {0, 0, -1, 1};
 
-    // Fila para BFS
     Fila *fila = criaFila(N * N);
-    
-    // Marcando as posições visitadas
     int visitado[N][N];
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
@@ -93,46 +79,59 @@ int bfs(int N, char mapa[N][N], Status *coord) {
         }
     }
 
-    // Adicionando a posição inicial de A
-    enfileira(fila, coord->xA);
-    enfileira(fila, coord->yA);
+    // Enfileira as posições iniciais A, B e C
+    enfileira(fila, coord->xA, coord->yA);
+    enfileira(fila, coord->xB, coord->yB);
+    enfileira(fila, coord->xC, coord->yC);
+
     visitado[coord->xA][coord->yA] = 1;
+    visitado[coord->xB][coord->yB] = 1;
+    visitado[coord->xC][coord->yC] = 1;
 
     // BFS
     int moves = 0;
     while (!filaVazia(fila)) {
-        int x = desenfileira(fila);
-        int y = desenfileira(fila);
+        int tamanhoFila = fila->fim - fila->inicio;
+        if (tamanhoFila < 0) tamanhoFila += fila->tamanho;
         
-        // Verificar se chegou ao objetivo C
-        if (mapa[x][y] == 'X') {
-            return moves;
-        }
+        // Processa todos os elementos na fila no nível atual
+        for (int i = 0; i < tamanhoFila; i++) {
+            int x, y;
+            desenfileira(fila, &x, &y);
 
-        // Explorar as posições vizinhas
-        for (int i = 0; i < 4; i++) {
-            int newX = x + movX[i];
-            int newY = y + movY[i];
+            // Verifica se encontrou o objetivo 'X'
+            if (map[x][y] == 'X') {
+                return moves;
+            }
 
-            if (newX >= 0 && newX < N && newY >= 0 && newY < N && !visitado[newX][newY] && mapa[newX][newY] != '#') {
-                enfileira(fila, newX);
-                enfileira(fila, newY);
-                visitado[newX][newY] = 1;
+            // Explorar as posições vizinhas
+            for (int j = 0; j < 4; j++) {
+                int newX = x + movX[j];
+                int newY = y + movY[j];
+
+                if (newX >= 0 && newX < N && newY >= 0 && newY < N && !visitado[newX][newY] && map[newX][newY] != '#') {
+                    enfileira(fila, newX, newY);
+                    visitado[newX][newY] = 1;
+                }
             }
         }
-
         moves++;
     }
 
-    // Se não encontrar caminho
-    return -1;
+    return -1;  // Caso não encontre caminho
 }
 
-void main(){
+int main() {
     int N, T;
-    scanf("%d", &T);
+    Status coord;
+    scanf("%d", &T);  // Não está sendo usado, mas pode ser útil em outro contexto
     scanf("%d", &N);
     char Mapa[N][N];
     lerMatriz(N, Mapa);
-    printMapa(N, Mapa); 
+    scanMatriz(N, Mapa, &coord);
+
+    int mov = BFS(N, Mapa, &coord);
+    printf("%d\n", mov);
+
+    return 0;
 }
