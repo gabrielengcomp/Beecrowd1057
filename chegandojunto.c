@@ -70,7 +70,7 @@ void desenfileira(Fila *fila, int *x, int *y) {
 int BFS(int N, char map[N][N], Status *coord) {
     int movX[] = {-1, 1, 0, 0};
     int movY[] = {0, 0, -1, 1};
-
+    
     Fila *fila = criaFila(N * N);
     int visitado[N][N];
     for (int i = 0; i < N; i++) {
@@ -90,6 +90,7 @@ int BFS(int N, char map[N][N], Status *coord) {
 
     // BFS
     int moves = 0;
+    int maxMoves = 0; // Variável para armazenar o maior número de movimentos
     while (!filaVazia(fila)) {
         int tamanhoFila = fila->fim - fila->inicio;
         if (tamanhoFila < 0) tamanhoFila += fila->tamanho;
@@ -101,7 +102,7 @@ int BFS(int N, char map[N][N], Status *coord) {
 
             // Verifica se encontrou o objetivo 'X'
             if (map[x][y] == 'X') {
-                return moves;
+                maxMoves = moves > maxMoves ? moves : maxMoves;
             }
 
             // Explorar as posições vizinhas
@@ -118,20 +119,24 @@ int BFS(int N, char map[N][N], Status *coord) {
         moves++;
     }
 
-    return -1;  // Caso não encontre caminho
+    return maxMoves;  // Retorna o maior número de movimentos entre A, B e C
 }
 
+
 int main() {
-    int N, T;
+    int N, T, i=0;
     Status coord;
     scanf("%d", &T);  // Não está sendo usado, mas pode ser útil em outro contexto
-    scanf("%d", &N);
-    char Mapa[N][N];
-    lerMatriz(N, Mapa);
-    scanMatriz(N, Mapa, &coord);
+    while(i<T){
+        scanf("%d", &N);
+        char Mapa[N][N];
+        lerMatriz(N, Mapa);
+        scanMatriz(N, Mapa, &coord);
 
-    int mov = BFS(N, Mapa, &coord);
-    printf("%d\n", mov);
-
+        int mov = BFS(N, Mapa, &coord);
+        if(mov!=0) printf("Case %d: %d\n",T, mov);
+        else printf("Case %d: trapped", T);
+        i++;
+    }
     return 0;
 }
