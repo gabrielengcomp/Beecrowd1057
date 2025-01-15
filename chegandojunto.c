@@ -134,6 +134,5 @@ void main(){
     scanf("%d", &N);
     char Mapa[N][N];
     lerMatriz(N, Mapa);
-    printMapa(N, Mapa);
-    
+    printMapa(N, Mapa); 
 }
