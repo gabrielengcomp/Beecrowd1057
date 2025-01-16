@@ -90,10 +90,9 @@ int BFS(int N, char map[N][N], Status *coord) {
 
     // BFS
     int moves = 0;
-    int maxMoves = 0; // Variável para armazenar o maior número de movimentos
+    int maxMoves = -1;  // Inicia com -1 para indicar nenhum movimento encontrado
     while (!filaVazia(fila)) {
-        int tamanhoFila = fila->fim - fila->inicio;
-        if (tamanhoFila < 0) tamanhoFila += fila->tamanho;
+        int tamanhoFila = (fila->fim - fila->inicio + fila->tamanho) % fila->tamanho;
         
         // Processa todos os elementos na fila no nível atual
         for (int i = 0; i < tamanhoFila; i++) {
@@ -116,26 +115,28 @@ int BFS(int N, char map[N][N], Status *coord) {
                 }
             }
         }
-        moves++;
+        moves++;  // Incrementa após processar todos os elementos da fila no nível atual
     }
 
     return maxMoves;  // Retorna o maior número de movimentos entre A, B e C
 }
 
-
 int main() {
-    int N, T, i=0;
+    int N, T, i = 0;
     Status coord;
     scanf("%d", &T);  // Não está sendo usado, mas pode ser útil em outro contexto
-    while(i<T){
+    while (i < T) {
         scanf("%d", &N);
         char Mapa[N][N];
         lerMatriz(N, Mapa);
         scanMatriz(N, Mapa, &coord);
 
         int mov = BFS(N, Mapa, &coord);
-        if(mov!=0) printf("Case %d: %d\n",T, mov);
-        else printf("Case %d: trapped", T);
+        if (mov != -1) {
+            printf("Case %d: %d\n", i + 1, mov);
+        } else {
+            printf("Case %d: trapped\n", i + 1);
+        }
         i++;
     }
     return 0;
