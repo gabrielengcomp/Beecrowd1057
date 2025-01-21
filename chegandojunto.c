@@ -1,50 +1,19 @@
-#include <stdio.h>
+]#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    int xA, yA, xB, yB, xC, yC, moves;
+} State;
 
 typedef struct fila {
-    int *dadosX;
-    int *dadosY;
+    State *dados;
     int inicio, fim, tamanho;
 } Fila;
 
-typedef struct status {
-    int xA, yA;
-    int xB, yB;
-    int xC, yC;
-} Status;
-
-void lerMatriz(int N, char map[N][N]) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            scanf(" %c", &map[i][j]);
-        }
-    }
-}
-
-void scanMatriz(int N, char map[N][N], Status *coord) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            char atual = map[i][j];
-            if (atual == 'A') {
-                coord->xA = i;
-                coord->yA = j;
-            }
-            if (atual == 'B') {
-                coord->xB = i;
-                coord->yB = j;
-            }
-            if (atual == 'C') {
-                coord->xC = i;
-                coord->yC = j;
-            }
-        }
-    }
-}
-
 Fila* criaFila(int capacidade) {
     Fila *fila = (Fila *)malloc(sizeof(Fila));
-    fila->dadosX = (int *)malloc(capacidade * sizeof(int));
-    fila->dadosY = (int *)malloc(capacidade * sizeof(int));
+    fila->dados = (State *)malloc(capacidade * sizeof(State));
     fila->inicio = 0;
     fila->fim = 0;
     fila->tamanho = capacidade;
@@ -55,89 +24,129 @@ int filaVazia(Fila *fila) {
     return fila->inicio == fila->fim;
 }
 
-void enfileira(Fila *fila, int x, int y) {
-    fila->dadosX[fila->fim] = x;
-    fila->dadosY[fila->fim] = y;
+void enfileira(Fila *fila, State estado) {
+    fila->dados[fila->fim] = estado;
     fila->fim = (fila->fim + 1) % fila->tamanho;
 }
 
-void desenfileira(Fila *fila, int *x, int *y) {
-    *x = fila->dadosX[fila->inicio];
-    *y = fila->dadosY[fila->inicio];
+State desenfileira(Fila *fila) {
+    State estado = fila->dados[fila->inicio];
     fila->inicio = (fila->inicio + 1) % fila->tamanho;
+    return estado;
 }
 
-int BFS(int N, char map[N][N], Status *coord) {
-    int movX[] = {-1, 1, 0, 0};
-    int movY[] = {0, 0, -1, 1};
-    
-    Fila *fila = criaFila(N * N);
-    int visitado[N][N];
+int Chegaram(int xA, int yA, int xB, int yB, int xC, int yC, int N, char map[N][N]) {
+    return map[xA][yA] == 'X' && map[xB][yB] == 'X' && map[xC][yC] == 'X';
+}
+
+int posicoesDistintas(int xA, int yA, int xB, int yB, int xC, int yC) {
+    return !(xA == xB && yA == yB) &&
+           !(xA == xC && yA == yC) &&
+           !(xB == xC && yB == yC);
+}
+
+int BFS(int N, char map[N][N], int xA, int yA, int xB, int yB, int xC, int yC) {
+    int dx[] = {-1, 1, 0, 0};
+    int dy[] = {0, 0, -1, 1};
+    int visitado[N][N][N][N][N][N];
+    memset(visitado, 0, sizeof(visitado));
+
+    Fila *fila = criaFila(100000);
+    State inicial = {xA, yA, xB, yB, xC, yC, 0};
+    enfileira(fila, inicial);
+    visitado[xA][yA][xB][yB][xC][yC] = 1;
+
+    while (!filaVazia(fila)) {
+        State atual = desenfileira(fila);
+
+        if (Chegaram(atual.xA, atual.yA, atual.xB, atual.yB, atual.xC, atual.yC, N, map)) {
+            free(fila->dados);
+            free(fila);
+            return atual.moves;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int nxA = atual.xA + dx[i];
+            int nyA = atual.yA + dy[i];
+            int nxB = atual.xB + dx[i];
+            int nyB = atual.yB + dy[i];
+            int nxC = atual.xC + dx[i];
+            int nyC = atual.yC + dy[i];
+
+            // Verifica limites e obstáculos
+            if (nxA < 0 || nxA >= N || nyA < 0 || nyA >= N || map[nxA][nyA] == '#') {
+                nxA = atual.xA;
+                nyA = atual.yA;
+            }
+            if (nxB < 0 || nxB >= N || nyB < 0 || nyB >= N || map[nxB][nyB] == '#') {
+                nxB = atual.xB;
+                nyB = atual.yB;
+            }
+            if (nxC < 0 || nxC >= N || nyC < 0 || nyC >= N || map[nxC][nyC] == '#') {
+                nxC = atual.xC;
+                nyC = atual.yC;
+            }
+
+            // Verifica se as posições são válidas
+            if (posicoesDistintas(nxA, nyA, nxB, nyB, nxC, nyC) &&
+                !visitado[nxA][nyA][nxB][nyB][nxC][nyC]) {
+                visitado[nxA][nyA][nxB][nyB][nxC][nyC] = 1;
+                State novo = {nxA, nyA, nxB, nyB, nxC, nyC, atual.moves + 1};
+                enfileira(fila, novo);
+            }
+        }
+    }
+
+    free(fila->dados);
+    free(fila);
+    return -1;
+}
+
+void lerMatriz(int N, char map[N][N]) {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            visitado[i][j] = 0;
+            scanf(" %c", &map[i][j]);
         }
     }
+}
 
-    // Enfileira as posições iniciais A, B e C
-    enfileira(fila, coord->xA, coord->yA);
-    enfileira(fila, coord->xB, coord->yB);
-    enfileira(fila, coord->xC, coord->yC);
-
-    visitado[coord->xA][coord->yA] = 1;
-    visitado[coord->xB][coord->yB] = 1;
-    visitado[coord->xC][coord->yC] = 1;
-
-    // BFS
-    int moves = 0;
-    int maxMoves = -1;  // Inicia com -1 para indicar nenhum movimento encontrado
-    while (!filaVazia(fila)) {
-        int tamanhoFila = (fila->fim - fila->inicio + fila->tamanho) % fila->tamanho;
-        
-        // Processa todos os elementos na fila no nível atual
-        for (int i = 0; i < tamanhoFila; i++) {
-            int x, y;
-            desenfileira(fila, &x, &y);
-
-            // Verifica se encontrou o objetivo 'X'
-            if (map[x][y] == 'X') {
-                maxMoves = moves > maxMoves ? moves : maxMoves;
-            }
-
-            // Explorar as posições vizinhas
-            for (int j = 0; j < 4; j++) {
-                int newX = x + movX[j];
-                int newY = y + movY[j];
-
-                if (newX >= 0 && newX < N && newY >= 0 && newY < N && !visitado[newX][newY] && map[newX][newY] != '#') {
-                    enfileira(fila, newX, newY);
-                    visitado[newX][newY] = 1;
-                }
+void scanMatriz(int N, char map[N][N], int *xA, int *yA, int *xB, int *yB, int *xC, int *yC) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            if (map[i][j] == 'A') {
+                *xA = i;
+                *yA = j;
+            } else if (map[i][j] == 'B') {
+                *xB = i;
+                *yB = j;
+            } else if (map[i][j] == 'C') {
+                *xC = i;
+                *yC = j;
             }
         }
-        moves++;  // Incrementa após processar todos os elementos da fila no nível atual
     }
-
-    return maxMoves;  // Retorna o maior número de movimentos entre A, B e C
 }
 
 int main() {
-    int N, T, i = 0;
-    Status coord;
-    scanf("%d", &T);  // Não está sendo usado, mas pode ser útil em outro contexto
-    while (i < T) {
-        scanf("%d", &N);
-        char Mapa[N][N];
-        lerMatriz(N, Mapa);
-        scanMatriz(N, Mapa, &coord);
+    int T;
+    scanf("%d", &T);
 
-        int mov = BFS(N, Mapa, &coord);
-        if (mov != -1) {
-            printf("Case %d: %d\n", i + 1, mov);
+    for (int t = 1; t <= T; t++) {
+        int N;
+        scanf("%d", &N);
+        char map[N][N];
+        int xA, yA, xB, yB, xC, yC;
+
+        lerMatriz(N, map);
+        scanMatriz(N, map, &xA, &yA, &xB, &yB, &xC, &yC);
+
+        int resultado = BFS(N, map, xA, yA, xB, yB, xC, yC);
+        if (resultado != -1) {
+            printf("Case %d: %d\n", t, resultado);
         } else {
-            printf("Case %d: trapped\n", i + 1);
+            printf("Case %d: trapped\n", t);
         }
-        i++;
     }
+
     return 0;
 }
