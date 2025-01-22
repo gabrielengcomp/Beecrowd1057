@@ -1,151 +1,142 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
+#define MAX_N 12
+#define MAX_QUEUE (MAX_N * MAX_N * MAX_N * 100)
+#define INF 0x3F3F3F3F
+
 typedef struct {
-    int xA, yA, xB, yB, xC, yC, moves;
-} State;
+    int x, y;
+} dvd;
 
-typedef struct fila {
-    State *dados;
-    int inicio, fim, tamanho;
-} Fila;
+typedef struct {
+    dvd A, B, C;
+    int tempo;
+} cd;
 
-Fila* criaFila(int capacidade) {
-    Fila *fila = (Fila *)malloc(sizeof(Fila));
-    fila->dados = (State *)malloc(capacidade * sizeof(State));
-    fila->inicio = 0;
-    fila->fim = 0;
-    fila->tamanho = capacidade;
-    return fila;
+char lab[MAX_N][MAX_N];
+int vis[MAX_N][MAX_N][MAX_N][MAX_N][MAX_N][MAX_N];
+int dx[] = {-1, 0, 0, 1}, dy[] = {0, -1, 1, 0};
+int N;
+
+dvd A, B, C;
+dvd a, b, c;
+
+cd queue[MAX_QUEUE];
+int front, rear;
+
+void init_queue() {
+    front = rear = 0;
 }
 
-int filaVazia(Fila *fila) {
-    return fila->inicio == fila->fim;
+int is_empty() {
+    return front == rear;
 }
 
-void enfileira(Fila *fila, State estado) {
-    fila->dados[fila->fim] = estado;
-    fila->fim = (fila->fim + 1) % fila->tamanho;
+void enqueue(cd val) {
+    queue[rear++] = val;
+    if (rear >= MAX_QUEUE) rear = 0;  // Circular queue
 }
 
-State desenfileira(Fila *fila) {
-    State estado = fila->dados[fila->inicio];
-    fila->inicio = (fila->inicio + 1) % fila->tamanho;
-    return estado;
+cd dequeue() {
+    cd val = queue[front++];
+    if (front >= MAX_QUEUE) front = 0;  // Circular queue
+    return val;
 }
 
-int Chegaram(int xA, int yA, int xB, int yB, int xC, int yC, int N, char map[N][N]) {
-    return map[xA][yA] == 'X' && map[xB][yB] == 'X' && map[xC][yC] == 'X';
+int podeir(dvd aux) {
+    return aux.x >= 0 && aux.x < N && aux.y >= 0 && aux.y < N && lab[aux.x][aux.y] != '#';
 }
 
-int posicoesDistintas(int xA, int yA, int xB, int yB, int xC, int yC) {
-    return !(xA == xB && yA == yB) &&
-           !(xA == xC && yA == yC) &&
-           !(xB == xC && yB == yC);
+int chegou() {
+    return lab[a.x][a.y] == 'X' && lab[b.x][b.y] == 'X' && lab[c.x][c.y] == 'X';
 }
 
-int BFS(int N, char map[N][N], int xA, int yA, int xB, int yB, int xC, int yC) {
-    int dx[] = {-1, 1, 0, 0};
-    int dy[] = {0, 0, -1, 1};
-    int visitado[N][N][N][N][N][N];
-    memset(visitado, 0, sizeof(visitado));
+void solve(int t) {
+    init_queue();
+    memset(vis, 0, sizeof(vis));
 
-    Fila *fila = criaFila(100000);
-    State inicial = {xA, yA, xB, yB, xC, yC, 0};
-    enfileira(fila, inicial);
-    visitado[xA][yA][xB][yB][xC][yC] = 1;
+    cd atual;
+    atual.A = A;
+    atual.B = B;
+    atual.C = C;
+    atual.tempo = 0;
 
-    while (!filaVazia(fila)) {
-        State atual = desenfileira(fila);
+    enqueue(atual);
+    vis[A.x][A.y][B.x][B.y][C.x][C.y] = 1;
 
-        if (Chegaram(atual.xA, atual.yA, atual.xB, atual.yB, atual.xC, atual.yC, N, map)) {
-            free(fila->dados);
-            free(fila);
-            return atual.moves;
+    while (!is_empty()) {
+        atual = dequeue();
+        a = atual.A;
+        b = atual.B;
+        c = atual.C;
+        
+        if (chegou()) {
+            printf("Case %d: %d\n", t, atual.tempo);
+            return;
         }
 
         for (int i = 0; i < 4; i++) {
-            int nxA = atual.xA + dx[i];
-            int nyA = atual.yA + dy[i];
-            int nxB = atual.xB + dx[i];
-            int nyB = atual.yB + dy[i];
-            int nxC = atual.xC + dx[i];
-            int nyC = atual.yC + dy[i];
+            dvd aa = {a.x + dx[i], a.y + dy[i]};
+            dvd bb = {b.x + dx[i], b.y + dy[i]};
+            dvd cc = {c.x + dx[i], c.y + dy[i]};
 
-            // Verifica limites e obstáculos
-            if (nxA < 0 || nxA >= N || nyA < 0 || nyA >= N || map[nxA][nyA] == '#') {
-                nxA = atual.xA;
-                nyA = atual.yA;
+            
+            // Verificar se as novas posições são válidas
+            if (!podeir(aa)) aa = a;
+            if (!podeir(bb)) bb = b;
+            if (!podeir(cc)) cc = c;
+
+            // Verificar se as entidades colidem nas novas posições
+            if (aa.x == bb.x && aa.y == bb.y) {
+                aa = a;  // Se A e B colidirem, não se movem.
+                bb = b;
             }
-            if (nxB < 0 || nxB >= N || nyB < 0 || nyB >= N || map[nxB][nyB] == '#') {
-                nxB = atual.xB;
-                nyB = atual.yB;
+            if (aa.x == cc.x && aa.y == cc.y) {
+                aa = a;  // Se A e C colidirem, não se movem.
+                cc = c;
             }
-            if (nxC < 0 || nxC >= N || nyC < 0 || nyC >= N || map[nxC][nyC] == '#') {
-                nxC = atual.xC;
-                nyC = atual.yC;
+            if (bb.x == cc.x && bb.y == cc.y) {
+                bb = b;  // Se B e C colidirem, não se movem.
+                cc = c;
             }
 
-            // Verifica se as posições são válidas
-            if (posicoesDistintas(nxA, nyA, nxB, nyB, nxC, nyC) &&
-                !visitado[nxA][nyA][nxB][nyB][nxC][nyC]) {
-                visitado[nxA][nyA][nxB][nyB][nxC][nyC] = 1;
-                State novo = {nxA, nyA, nxB, nyB, nxC, nyC, atual.moves + 1};
-                enfileira(fila, novo);
-            }
-        }
-    }
 
-    free(fila->dados);
-    free(fila);
-    return -1;
-}
-
-void lerMatriz(int N, char map[N][N]) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            scanf(" %c", &map[i][j]);
-        }
-    }
-}
-
-void scanMatriz(int N, char map[N][N], int *xA, int *yA, int *xB, int *yB, int *xC, int *yC) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            if (map[i][j] == 'A') {
-                *xA = i;
-                *yA = j;
-            } else if (map[i][j] == 'B') {
-                *xB = i;
-                *yB = j;
-            } else if (map[i][j] == 'C') {
-                *xC = i;
-                *yC = j;
+            // Verificar se já visitamos essa combinação de posições
+            if (!vis[aa.x][aa.y][bb.x][bb.y][cc.x][cc.y]) {
+                vis[aa.x][aa.y][bb.x][bb.y][cc.x][cc.y] = 1;
+                cd novo = {aa, bb, cc, atual.tempo + 1};
+                enqueue(novo);
             }
         }
     }
+
+    printf("Case %d: trapped\n", t);
 }
+
 
 int main() {
     int T;
     scanf("%d", &T);
 
     for (int t = 1; t <= T; t++) {
-        int N;
         scanf("%d", &N);
-        char map[N][N];
-        int xA, yA, xB, yB, xC, yC;
-
-        lerMatriz(N, map);
-        scanMatriz(N, map, &xA, &yA, &xB, &yB, &xC, &yC);
-
-        int resultado = BFS(N, map, xA, yA, xB, yB, xC, yC);
-        if (resultado != -1) {
-            printf("Case %d: %d\n", t, resultado);
-        } else {
-            printf("Case %d: trapped\n", t);
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                scanf(" %c", &lab[i][j]);
+                if (lab[i][j] == 'A') {
+                    A.x = i;
+                    A.y = j;
+                } else if (lab[i][j] == 'B') {
+                    B.x = i;
+                    B.y = j;
+                } else if (lab[i][j] == 'C') {
+                    C.x = i;
+                    C.y = j;
+                }
+            }
         }
+        solve(t);
     }
 
     return 0;
