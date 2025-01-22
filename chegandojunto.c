@@ -2,113 +2,122 @@
 #include <string.h>
 
 #define MAX_N 12
-#define MAX_QUEUE (MAX_N * MAX_N * MAX_N * 100)
-#define INF 0x3F3F3F3F
+#define MAX_FILA (MAX_N * MAX_N * MAX_N * 100)
+
 
 typedef struct {
     int x, y;
-} dvd;
+} coordenadas;
 
 typedef struct {
-    dvd A, B, C;
-    int tempo;
-} cd;
+    coordenadas A, B, C;
+    int moves;
+} estado;
 
-char lab[MAX_N][MAX_N];
+char map[MAX_N][MAX_N];
 int vis[MAX_N][MAX_N][MAX_N][MAX_N][MAX_N][MAX_N];
-int dx[] = {-1, 0, 0, 1}, dy[] = {0, -1, 1, 0};
+int dx[] = {-1, 1, 0, 0};
+int dy[] = {0, 0, -1, 1};
 int N;
 
-dvd A, B, C;
-dvd a, b, c;
+coordenadas A, B, C;
+coordenadas a, b, c;
 
-cd queue[MAX_QUEUE];
-int front, rear;
+estado Fila[MAX_FILA];
+int inicio, fim;
 
-void init_queue() {
-    front = rear = 0;
+void inicializarFila() {
+    inicio = fim = 0;
 }
 
-int is_empty() {
-    return front == rear;
+int filaVazia() {
+    return inicio == fim;
 }
 
-void enqueue(cd val) {
-    queue[rear++] = val;
-    if (rear >= MAX_QUEUE) rear = 0;  // Circular queue
+void enfileira(estado val) {
+    Fila[fim++] = val;
+    if (fim >= MAX_FILA) fim = 0;  
 }
 
-cd dequeue() {
-    cd val = queue[front++];
-    if (front >= MAX_QUEUE) front = 0;  // Circular queue
+estado desinfileira() {
+    estado val = Fila[inicio++];
+    if (inicio >= MAX_FILA) inicio = 0;
     return val;
 }
 
-int podeir(dvd aux) {
-    return aux.x >= 0 && aux.x < N && aux.y >= 0 && aux.y < N && lab[aux.x][aux.y] != '#';
+int podeir(coordenadas aux) {
+    return aux.x >= 0 && aux.x < N && aux.y >= 0 && aux.y < N && map[aux.x][aux.y] != '#';
 }
 
 int chegou() {
-    return lab[a.x][a.y] == 'X' && lab[b.x][b.y] == 'X' && lab[c.x][c.y] == 'X';
+    return map[a.x][a.y] == 'X' && map[b.x][b.y] == 'X' && map[c.x][c.y] == 'X';
 }
 
-void solve(int t) {
-    init_queue();
+void BFS(int t) {
+    inicializarFila();
     memset(vis, 0, sizeof(vis));
 
-    cd atual;
+    estado atual;
     atual.A = A;
     atual.B = B;
     atual.C = C;
-    atual.tempo = 0;
+    atual.moves = 0;
 
-    enqueue(atual);
+    enfileira(atual);
     vis[A.x][A.y][B.x][B.y][C.x][C.y] = 1;
 
-    while (!is_empty()) {
-        atual = dequeue();
+    while (!filaVazia()) {
+        atual = desinfileira();
         a = atual.A;
         b = atual.B;
         c = atual.C;
         
         if (chegou()) {
-            printf("Case %d: %d\n", t, atual.tempo);
+            printf("Case %d: %d\n", t, atual.moves);
             return;
         }
 
         for (int i = 0; i < 4; i++) {
-            dvd aa = {a.x + dx[i], a.y + dy[i]};
-            dvd bb = {b.x + dx[i], b.y + dy[i]};
-            dvd cc = {c.x + dx[i], c.y + dy[i]};
+    coordenadas novoA = {a.x + dx[i], a.y + dy[i]};
+    coordenadas novoB = {b.x + dx[i], b.y + dy[i]};
+    coordenadas novoC = {c.x + dx[i], c.y + dy[i]};
+    
+    // Verificar se as novas posições são válidas
+    if (!podeir(novoA)) novoA = a;
+    if (!podeir(novoB)) novoB = b;
+    if (!podeir(novoC)) novoC = c;
 
-            
-            // Verificar se as novas posições são válidas
-            if (!podeir(aa)) aa = a;
-            if (!podeir(bb)) bb = b;
-            if (!podeir(cc)) cc = c;
+    // Verificar se as entidades colidem nas novas posições
+    if (novoA.x == novoB.x && novoA.y == novoB.y) {
+        novoA = a;  // Se A e B colidirem, não se movem.
+        novoB = b;
+    }
+    if (novoA.x == novoC.x && novoA.y == novoC.y) {
+        novoA = a;  // Se A e C colidirem, não se movem.
+        novoC = c;
+    }
+    if (novoB.x == novoC.x && novoB.y == novoC.y) {
+        novoB = b;  // Se B e C colidirem, não se movem.
+        novoC = c;
+    }
 
-            // Verificar se as entidades colidem nas novas posições
-            if (aa.x == bb.x && aa.y == bb.y) {
-                aa = a;  // Se A e B colidirem, não se movem.
-                bb = b;
-            }
-            if (aa.x == cc.x && aa.y == cc.y) {
-                aa = a;  // Se A e C colidirem, não se movem.
-                cc = c;
-            }
-            if (bb.x == cc.x && bb.y == cc.y) {
-                bb = b;  // Se B e C colidirem, não se movem.
-                cc = c;
-            }
+    // Verificar colisões de troca de posição
+    if ((novoA.x == b.x && novoA.y == b.y && novoB.x == a.x && novoB.y == a.y) ||  // A troca com B
+        (novoA.x == c.x && novoA.y == c.y && novoC.x == a.x && novoC.y == a.y) ||  // A troca com C
+        (novoB.x == c.x && novoB.y == c.y && novoC.x == b.x && novoC.y == b.y)) {  // B troca com C
+        novoA = a;  // Invalidar o movimento.
+        novoB = b;
+        novoC = c;
+    }
 
+    // Verificar se já visitamos essa combinação de posições
+    if (!vis[novoA.x][novoA.y][novoB.x][novoB.y][novoC.x][novoC.y]) {
+        vis[novoA.x][novoA.y][novoB.x][novoB.y][novoC.x][novoC.y] = 1;
+        estado novo = {novoA, novoB, novoC, atual.moves + 1};
+        enfileira(novo);
+    }
+}
 
-            // Verificar se já visitamos essa combinação de posições
-            if (!vis[aa.x][aa.y][bb.x][bb.y][cc.x][cc.y]) {
-                vis[aa.x][aa.y][bb.x][bb.y][cc.x][cc.y] = 1;
-                cd novo = {aa, bb, cc, atual.tempo + 1};
-                enqueue(novo);
-            }
-        }
     }
 
     printf("Case %d: trapped\n", t);
@@ -123,20 +132,20 @@ int main() {
         scanf("%d", &N);
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                scanf(" %c", &lab[i][j]);
-                if (lab[i][j] == 'A') {
+                scanf(" %c", &map[i][j]);
+                if (map[i][j] == 'A') {
                     A.x = i;
                     A.y = j;
-                } else if (lab[i][j] == 'B') {
+                } else if (map[i][j] == 'B') {
                     B.x = i;
                     B.y = j;
-                } else if (lab[i][j] == 'C') {
+                } else if (map[i][j] == 'C') {
                     C.x = i;
                     C.y = j;
                 }
             }
         }
-        solve(t);
+        BFS(t);
     }
 
     return 0;
