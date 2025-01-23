@@ -78,46 +78,50 @@ void BFS(int t) {
         }
 
         for (int i = 0; i < 4; i++) {
-    coordenadas novoA = {a.x + dx[i], a.y + dy[i]};
-    coordenadas novoB = {b.x + dx[i], b.y + dy[i]};
-    coordenadas novoC = {c.x + dx[i], c.y + dy[i]};
-    
-    // Verificar se as novas posições são válidas
-    if (!podeir(novoA)) novoA = a;
-    if (!podeir(novoB)) novoB = b;
-    if (!podeir(novoC)) novoC = c;
+            coordenadas novoA = {a.x + dx[i], a.y + dy[i]};
+            coordenadas novoB = {b.x + dx[i], b.y + dy[i]};
+            coordenadas novoC = {c.x + dx[i], c.y + dy[i]};
+            
+            // Verificar se as novas posições são válidas
+            if (!podeir(novoA)) novoA = a;
+            if (!podeir(novoB)) novoB = b;
+            if (!podeir(novoC)) novoC = c;
 
-    // Verificar se as entidades colidem nas novas posições
-    if (novoA.x == novoB.x && novoA.y == novoB.y) {
-        novoA = a;  // Se A e B colidirem, não se movem.
-        novoB = b;
-    }
-    if (novoA.x == novoC.x && novoA.y == novoC.y) {
-        novoA = a;  // Se A e C colidirem, não se movem.
-        novoC = c;
-    }
-    if (novoB.x == novoC.x && novoB.y == novoC.y) {
-        novoB = b;  // Se B e C colidirem, não se movem.
-        novoC = c;
-    }
+            // Verificar se as entidades colidem nas novas posições
+            if (novoA.x == novoB.x && novoA.y == novoB.y) {
+                novoA = a;  // Se A e B colidirem, não se movem.
+                novoB = b;
+            }
+            if (novoA.x == novoC.x && novoA.y == novoC.y) {
+                novoA = a;  // Se A e C colidirem, não se movem.
+                novoC = c;
+            }
+            if (novoB.x == novoC.x && novoB.y == novoC.y) {
+                novoB = b;  // Se B e C colidirem, não se movem.
+                novoC = c;
+            }
 
-    // Verificar colisões de troca de posição
-    if ((novoA.x == b.x && novoA.y == b.y && novoB.x == a.x && novoB.y == a.y) ||  // A troca com B
-        (novoA.x == c.x && novoA.y == c.y && novoC.x == a.x && novoC.y == a.y) ||  // A troca com C
-        (novoB.x == c.x && novoB.y == c.y && novoC.x == b.x && novoC.y == b.y)) {  // B troca com C
-        novoA = a;  // Invalidar o movimento.
-        novoB = b;
-        novoC = c;
-    }
+            // Verificar colisões de troca de posição
+            if ((novoA.x == b.x && novoA.y == b.y && novoB.x == a.x && novoB.y == a.y) ||  // A troca com B
+                (novoA.x == c.x && novoA.y == c.y && novoC.x == a.x && novoC.y == a.y) ||  // A troca com C
+                (novoB.x == c.x && novoB.y == c.y && novoC.x == b.x && novoC.y == b.y)) {  // B troca com C
+                continue;  // Ignorar este movimento.
+            }
 
-    // Verificar se já visitamos essa combinação de posições
-    if (!vis[novoA.x][novoA.y][novoB.x][novoB.y][novoC.x][novoC.y]) {
-        vis[novoA.x][novoA.y][novoB.x][novoB.y][novoC.x][novoC.y] = 1;
-        estado novo = {novoA, novoB, novoC, atual.moves + 1};
-        enfileira(novo);
-    }
-}
+            // Verificar se já visitamos essa combinação de posições
+            if (!vis[novoA.x][novoA.y][novoB.x][novoB.y][novoC.x][novoC.y]) {
+                vis[novoA.x][novoA.y][novoB.x][novoB.y][novoC.x][novoC.y] = 1;
 
+                if ((novoA.x == novoB.x && novoA.y == novoB.y) || 
+                (novoA.x == novoC.x && novoA.y == novoC.y) || 
+                (novoB.x == novoC.x && novoB.y == novoC.y)) {
+                continue;  // Posição inválida.
+                }
+
+                estado novo = {novoA, novoB, novoC, atual.moves + 1};
+                enfileira(novo);
+            }
+        }   
     }
 
     printf("Case %d: trapped\n", t);
@@ -126,11 +130,11 @@ void BFS(int t) {
 
 int main() {
     int T;
-    scanf("%d", &T);
+    scanf("%d", &T); //Armazena o número de casos
 
     for (int t = 1; t <= T; t++) {
         scanf("%d", &N);
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < N; i++) { //Lê e armazena o mapa
             for (int j = 0; j < N; j++) {
                 scanf(" %c", &map[i][j]);
                 if (map[i][j] == 'A') {
